@@ -5,8 +5,9 @@
  * An open source application development framework for PHP 5.1.6 or newer
  *
  * @package		CodeIgniter
- * @author		ExpressionEngine Dev Team
- * @copyright	Copyright (c) 2008 - 2011, EllisLab, Inc.
+ * @author		EllisLab Dev Team
+ * @copyright		Copyright (c) 2008 - 2014, EllisLab, Inc.
+ * @copyright		Copyright (c) 2014 - 2015, British Columbia Institute of Technology (http://bcit.ca/)
  * @license		http://codeigniter.com/user_guide/license.html
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -23,7 +24,7 @@
  * @package		CodeIgniter
  * @subpackage	codeigniter
  * @category	Front-controller
- * @author		ExpressionEngine Dev Team
+ * @author		EllisLab Dev Team
  * @link		http://codeigniter.com/user_guide/
  */
 
@@ -33,7 +34,7 @@
  * @var string
  *
  */
-	define('CI_VERSION', '2.1.4');
+	define('CI_VERSION', '2.2.6');
 
 /**
  * CodeIgniter Branch (Core = TRUE, Reactor = FALSE)
@@ -319,51 +320,46 @@
  *  Call the requested method
  * ------------------------------------------------------
  */
- 
- 	// PHPUNIT_TEST:
- 	// Ignore Routing schemes in a PHPUnit test 
- 	if (!defined('PHPUNIT_TEST'))
- 	{
-		// Is there a "remap" function? If so, we call it instead
-		if (method_exists($CI, '_remap'))
+	// Is there a "remap" function? If so, we call it instead
+	if (method_exists($CI, '_remap'))
+	{
+		$CI->_remap($method, array_slice($URI->rsegments, 2));
+	}
+	else
+	{
+		// is_callable() returns TRUE on some versions of PHP 5 for private and protected
+		// methods, so we'll use this workaround for consistent behavior
+		if ( ! in_array(strtolower($method), array_map('strtolower', get_class_methods($CI))))
 		{
-			$CI->_remap($method, array_slice($URI->rsegments, 2));
-		}
-		else
-		{
-			// is_callable() returns TRUE on some versions of PHP 5 for private and protected
-			// methods, so we'll use this workaround for consistent behavior
-			if ( ! in_array(strtolower($method), array_map('strtolower', get_class_methods($CI))))
+			// Check and see if we are using a 404 override and use it.
+			if ( ! empty($RTR->routes['404_override']))
 			{
-				// Check and see if we are using a 404 override and use it.
-				if ( ! empty($RTR->routes['404_override']))
+				$x = explode('/', $RTR->routes['404_override']);
+				$class = $x[0];
+				$method = (isset($x[1]) ? $x[1] : 'index');
+				if ( ! class_exists($class))
 				{
-					$x = explode('/', $RTR->routes['404_override']);
-					$class = $x[0];
-					$method = (isset($x[1]) ? $x[1] : 'index');
-					if ( ! class_exists($class))
+					if ( ! file_exists(APPPATH.'controllers/'.$class.'.php'))
 					{
-						if ( ! file_exists(APPPATH.'controllers/'.$class.'.php'))
-						{
-							show_404("{$class}/{$method}");
-						}
-	
-						include_once(APPPATH.'controllers/'.$class.'.php');
-						unset($CI);
-						$CI = new $class();
+						show_404("{$class}/{$method}");
 					}
-				}
-				else
-				{
-					show_404("{$class}/{$method}");
+
+					include_once(APPPATH.'controllers/'.$class.'.php');
+					unset($CI);
+					$CI = new $class();
 				}
 			}
-	
-			// Call the requested method.
-			// Any URI segments present (besides the class/function) will be passed to the method for convenience
-			call_user_func_array(array(&$CI, $method), array_slice($URI->rsegments, 2));
+			else
+			{
+				show_404("{$class}/{$method}");
+			}
 		}
+
+		// Call the requested method.
+		// Any URI segments present (besides the class/function) will be passed to the method for convenience
+		call_user_func_array(array(&$CI, $method), array_slice($URI->rsegments, 2));
 	}
+
 
 	// Mark a benchmark end point
 	$BM->mark('controller_execution_time_( '.$class.' / '.$method.' )_end');
@@ -380,10 +376,7 @@
  *  Send the final rendered output to the browser
  * ------------------------------------------------------
  */
- 
-	// PHPUNIT_TEST:
- 	// Ignore output in a PHPUnit test 
-	if ($EXT->_call_hook('display_override') === FALSE && !defined('PHPUNIT_TEST'))
+	if ($EXT->_call_hook('display_override') === FALSE)
 	{
 		$OUT->_display();
 	}
