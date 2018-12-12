@@ -1,3 +1,11 @@
+# Esteban Monge testing release
+I am sure that this project needs a rename, but at the moment is an attempt to update with less outdated libraries.
+
+I updated Codeigniter to 2.2.6 and some Javascript.
+
+I want update to 3.x but needs a lot of rework... easy but tedious rework.
+
+
 # Nagios V-Shell
 
 [![Build Status](https://travis-ci.org/chrislaskey/nagiosvshell.svg?branch=2.x)](https://travis-ci.org/chrislaskey/nagiosvshell)
